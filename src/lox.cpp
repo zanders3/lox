@@ -173,24 +173,32 @@ struct Interpreter : public Visitor
     void VisitVar(const StmtVar& stmt)
     {
         Value value;
-        if (stmt.initializer)
-            value = stmt.initializer->Visit(*this);
+        if (stmt.initialiser)
+            value = stmt.initialiser->Visit(*this);
         environment.Define(stmt.name, value);
     }
 
-    void VisitBlock(const StmtBlock&) 
+    void VisitBlock(const StmtBlock& stmt) 
     {
+        environment.Push();
 
+        for (const std::unique_ptr<Stmt>& stmt : stmt.stmts)
+            if (stmt)
+                stmt->Visit(*this);
+
+        environment.Pop();
     }
 
     void VisitFunction(const StmtFunction&) 
     {
-
     }
 
-    void VisitIf(const StmtIf&) 
+    void VisitIf(const StmtIf& stmt) 
     {
-
+    	if (IsTruthy(stmt.condition->Visit(*this)))
+    		stmt.thenBranch->Visit(*this);
+    	else if (stmt.elseBranch)
+    		stmt.elseBranch->Visit(*this);
     }
 
     void VisitPrint(const StmtPrint& expr) 
@@ -203,9 +211,10 @@ struct Interpreter : public Visitor
 
     }
 
-    void VisitWhile(const StmtWhile&) 
+    void VisitWhile(const StmtWhile& stmt) 
     {
-
+    	while (IsTruthy(stmt.condition->Visit(*this)))
+    		stmt.body->Visit(*this);
     }
 private:
     Environment& environment;

@@ -23,16 +23,16 @@ void Value::Print() const
     switch (type)
     {
         case ValueType::BOOL:
-            printf(intValue ? "true" : "false");
+            printf(intValue ? "true\n" : "false\n");
             break;
         case ValueType::NUMBER:
-            printf("%d", intValue);
+            printf("%d\n", intValue);
             break;
         case ValueType::STRING:
-            printf("%s", stringValue.c_str());
+            printf("%s\n", stringValue.c_str());
             break;
         case ValueType::NIL:
-            printf("nil");
+            printf("nil\n");
             break;
     }
 }

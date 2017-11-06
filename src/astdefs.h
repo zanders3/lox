@@ -15,5 +15,5 @@ AST(void, Stmt, Function, const Token* name; std::vector<const Token*> params; s
 AST(void, Stmt, If, std::unique_ptr<Expr> condition; std::unique_ptr<Stmt> thenBranch; std::unique_ptr<Stmt> elseBranch;,)
 AST(void, Stmt, Print, std::unique_ptr<Expr> expr;,)
 AST(void, Stmt, Return, const Token* keyword; std::unique_ptr<Expr> value;,)
-AST(void, Stmt, Var, const Token* name; std::unique_ptr<Expr> initializer;,)
+AST(void, Stmt, Var, const Token* name; std::unique_ptr<Expr> initialiser;,)
 AST(void, Stmt, While, std::unique_ptr<Expr> condition; std::unique_ptr<Stmt> body;,)

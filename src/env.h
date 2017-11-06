@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <unordered_map>
+#include <vector>
 #include "value.h"
 
 class Token;
@@ -12,7 +13,9 @@ public:
     Value Get(const Token* name) const;
     void Assign(const Token* name, const Value& value);
     void Define(const Token* name, const Value& value);
+    void Push();
+    void Pop();
 
 private:
-    std::unordered_map<std::string,Value> m_values;
+    std::vector<std::unordered_map<std::string,Value>> m_envs;
 };
