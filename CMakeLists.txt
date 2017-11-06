@@ -1,0 +1,5 @@
+cmake_minimum_required (VERSION 2.6)
+project (lox)
+set (CMAKE_CXX_STANDARD 11)
+file(GLOB SOURCES "src/*.cpp" "src/*.h")
+add_executable (lox ${SOURCES})
