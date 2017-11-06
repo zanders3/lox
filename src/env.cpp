@@ -45,6 +45,11 @@ void Environment::Define(const Token* token, const Value& value)
 	m_envs[m_envs.size() - 1].emplace(token->stringLiteral, value);
 }
 
+void Environment::DefineFunction(const std::string& name, LoxFunction function, int arity)
+{
+	m_envs[m_envs.size() - 1].emplace(name, Value(name, function, arity));
+}
+
 void Environment::Push()
 {
 	m_envs.push_back(std::unordered_map<std::string,Value>());

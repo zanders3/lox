@@ -64,6 +64,7 @@ struct Interpreter : public Visitor
                         case ValueType::BOOL: rightStr = right.intValue ? "true" : "false"; break;
                         case ValueType::NUMBER: rightStr = std::to_string(right.intValue).c_str(); break;
                         case ValueType::STRING: rightStr = right.stringValue.c_str(); break;
+                        case ValueType::FUNCTION: rightStr = (std::string("func ") + right.stringValue).c_str(); break;
                     }
 
                     return Value(left.stringValue + rightStr);
@@ -100,9 +101,27 @@ struct Interpreter : public Visitor
         return Value();
     }
 
-    Value VisitCall(const ExprCall&) 
+    Value VisitCall(const ExprCall& expr) 
     {
-        return Value();
+        Value callee = expr.callee->Visit(*this);
+        if (callee.type != ValueType::FUNCTION || !callee.functionValue)
+        {
+            lox_error(*expr.paren, "Callee is not a function");
+            return Value();
+        }
+
+        if (callee.intValue != expr.args.size())
+        {
+            char buf[64];
+            std::snprintf(buf, 64, "Expected %d args but got %d", callee.intValue, (int)expr.args.size());
+            lox_error(*expr.paren, buf);
+        }
+
+        std::vector<Value> args;
+        for (const std::unique_ptr<Expr>& arg : expr.args)
+            args.push_back(arg->Visit(*this));
+
+        return callee.functionValue(*this, args);
     }
 
     Value VisitGrouping(const ExprGrouping& group)
@@ -220,9 +239,7 @@ private:
     Environment& environment;
 };
 
-Environment g_environment;
-
-void lox_run(const char* source, int sourceLen)
+void lox_run(Environment& env, const char* source, int sourceLen)
 {
     std::vector<Token> tokens;
     scanner_scan(source, sourceLen, tokens);
@@ -230,7 +247,7 @@ void lox_run(const char* source, int sourceLen)
     std::vector<std::unique_ptr<Stmt>> stmts;
     parser_parse(tokens, stmts);
 
-    Interpreter interpreter(g_environment);
+    Interpreter interpreter(env);
     for (const std::unique_ptr<Stmt>& stmt : stmts)
     {
         if (stmt)

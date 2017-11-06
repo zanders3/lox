@@ -1,11 +1,21 @@
 #include <stdio.h>
 #include "lox.h"
+#include "env.h"
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <time.h>
+
+static Value ClockFunc(Interpreter& interpreter, std::vector<Value>& args)
+{
+	return Value((int)time(nullptr));
+}
 
 int main(int argc, char** argv)
 {
+	Environment env;
+	env.DefineFunction("time", ClockFunc, 0);
+
 	if (argc > 1)
 	{
 		std::stringstream buf;
@@ -17,7 +27,7 @@ int main(int argc, char** argv)
 		}
 		buf << file.rdbuf();
 		const std::string& contents = buf.str();
-		lox_run(contents.c_str(), contents.size());
+		lox_run(env, contents.c_str(), contents.size());
 	}
 	else
 	{
@@ -27,7 +37,7 @@ int main(int argc, char** argv)
 			printf("> ");
 			const char* line = fgets(lineBuf, 255, stdin);
 			printf("%s\n", line);
-			lox_run(line, strlen(line));
+			lox_run(env, line, strlen(line));
 		}
 		return 0;
 	}

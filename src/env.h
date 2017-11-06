@@ -13,6 +13,7 @@ public:
     Value Get(const Token* name) const;
     void Assign(const Token* name, const Value& value);
     void Define(const Token* name, const Value& value);
+    void DefineFunction(const std::string& name, LoxFunction function, int arity);
     void Push();
     void Pop();
 

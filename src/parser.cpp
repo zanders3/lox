@@ -459,11 +459,41 @@ struct Parser
         return Call();
     }
 
+    ExprPtr FinishCall(ExprPtr& callee)
+    {
+        std::vector<ExprPtr> args;
+        if (!Check(TokenType::RIGHT_PAREN))
+        {
+            do
+            {
+                args.push_back(Expression());
+            }
+            while (Match(TokenType::COMMA));
+        }
+
+        const Token* token = Consume(TokenType::RIGHT_PAREN, "Expect ')' after arguments");
+        if (!token)
+            return ExprPtr();
+
+        std::unique_ptr<ExprCall> expr(new ExprCall());
+        expr->callee = std::move(callee);
+        expr->paren = token;
+        expr->args = std::move(args);
+        return expr;
+    }
+
     //call -> primary ( "(" arguments? ")" )*
     ExprPtr Call()
     {
-        return Primary();
-        //TODO: function call
+        ExprPtr expr = Primary();
+        while (true)
+        {
+            if (Match(TokenType::LEFT_PAREN))
+                expr = FinishCall(expr);
+            else
+                break;
+        }
+        return expr;
     }
 
     //primary        → NUMBER | STRING | "false" | "true" | "nil"
