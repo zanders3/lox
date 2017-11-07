@@ -121,7 +121,7 @@ struct Interpreter : public Visitor
         for (const std::unique_ptr<Expr>& arg : expr.args)
             args.push_back(arg->Visit(*this));
 
-        return callee.functionValue(*this, args);
+        return callee.functionValue(*this, args, callee.functionStmt);
     }
 
     Value VisitGrouping(const ExprGrouping& group)
@@ -208,8 +208,23 @@ struct Interpreter : public Visitor
         environment.Pop();
     }
 
-    void VisitFunction(const StmtFunction&) 
+    static Value FunctionCall(Interpreter& interpreter, std::vector<Value>& args, const StmtFunction* stmtFunction)
     {
+        interpreter.environment.Push();
+        for (int i = 0; i<args.size(); ++i)
+                interpreter.environment.Define(stmtFunction->params[i], args[i]);
+            
+            for (const std::unique_ptr<Stmt>& stmt : stmtFunction->body)
+                if (stmt)
+                    stmt->Visit(interpreter);
+        interpreter.environment.Pop();
+
+        return Value();
+    }
+
+    void VisitFunction(const StmtFunction& stmt) 
+    {
+        environment.Define(stmt.name, Value(stmt.name->stringLiteral, Interpreter::FunctionCall, stmt.params.size(), &stmt));
     }
 
     void VisitIf(const StmtIf& stmt) 
@@ -235,6 +250,7 @@ struct Interpreter : public Visitor
     	while (IsTruthy(stmt.condition->Visit(*this)))
     		stmt.body->Visit(*this);
     }
+
 private:
     Environment& environment;
 };

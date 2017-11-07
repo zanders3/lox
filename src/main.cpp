@@ -6,7 +6,7 @@
 #include <fstream>
 #include <time.h>
 
-static Value ClockFunc(Interpreter& interpreter, std::vector<Value>& args)
+static Value ClockFunc(Interpreter& interpreter, std::vector<Value>& args, const StmtFunction*)
 {
 	return Value((int)time(nullptr));
 }

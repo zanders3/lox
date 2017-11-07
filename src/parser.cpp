@@ -85,13 +85,49 @@ struct Parser
     StmtPtr Declaration()
     {
         StmtPtr stmt;
-        //if (Match(TokenType::FUN)) stmt = Function();
-        if (Match(TokenType::VAR)) stmt = VarDecl();
+        if (Match(TokenType::FUN)) stmt = Function();
+        else if (Match(TokenType::VAR)) stmt = VarDecl();
         else stmt = Statement();
 
         if (!stmt)
             Synchronize();
 
+        return stmt;
+    }
+
+    // funcDecl -> "fun" function
+    // function -> IDENTIFIER "(" parameters? ")" block
+    StmtPtr Function()
+    {
+        const Token* name = Consume(TokenType::IDENTIFIER, "Expected function name");
+        if (!name)
+            return StmtPtr();
+        if (!Consume(TokenType::LEFT_PAREN, "Expected '(' after function name"))
+            return StmtPtr();
+
+        std::vector<const Token*> params;
+        if (!Check(TokenType::RIGHT_PAREN))
+        {
+            do
+            {
+                const Token* param = Consume(TokenType::IDENTIFIER, "Expected parameter name");
+                if (!param)
+                    return StmtPtr();
+                params.push_back(param);
+            }
+            while (Match(TokenType::COMMA));
+        }
+        if (!Consume(TokenType::RIGHT_PAREN, "Expected ')' after parameters"))
+            return StmtPtr();
+        if (!Consume(TokenType::LEFT_BRACE, "Expected '{' before function body"))
+            return StmtPtr();
+        std::vector<StmtPtr> body;
+        ParseBlock(body);
+
+        std::unique_ptr<StmtFunction> stmt(new StmtFunction());
+        stmt->name = name;
+        stmt->params = params;
+        stmt->body = std::move(body);
         return stmt;
     }
 
@@ -164,14 +200,20 @@ struct Parser
         return body;
     }
 
-    // block -> declaration*
-    StmtPtr BlockStatement()
+    void ParseBlock(std::vector<StmtPtr>& stmts)
     {
-        std::vector<StmtPtr> stmts;
         while (!Check(TokenType::RIGHT_BRACE) && !IsAtEnd())
             stmts.push_back(Declaration());
 
         Consume(TokenType::RIGHT_BRACE, "Expect '}' after block");
+    }
+
+    // block -> declaration*
+    StmtPtr BlockStatement()
+    {
+        std::vector<StmtPtr> stmts;
+        ParseBlock(stmts);
+        
         std::unique_ptr<StmtBlock> stmt(new StmtBlock());
         stmt->stmts = std::move(stmts);
         return stmt;
