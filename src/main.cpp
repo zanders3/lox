@@ -6,15 +6,15 @@
 #include <fstream>
 #include <time.h>
 
-static Value ClockFunc(Interpreter& interpreter, std::vector<Value>& args, const StmtFunction*)
+static Value ClockFunc(Interpreter& interpreter, std::vector<Value>& args)
 {
 	return Value((int)time(nullptr));
 }
 
 int main(int argc, char** argv)
 {
-	Environment env;
-	env.DefineFunction("time", ClockFunc, 0);
+	std::shared_ptr<Environment> env = std::make_shared<Environment>();
+	env->DefineFunction("time", ClockFunc, 0);
 
 	if (argc > 1)
 	{

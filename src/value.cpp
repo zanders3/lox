@@ -3,34 +3,24 @@
 Value::Value()
     : type(ValueType::NIL)
     , intValue(0)
-    , functionValue(nullptr)
-    , functionStmt(nullptr)
 {}
 Value::Value(bool value)
     : type(ValueType::BOOL)
     , intValue(value)
-    , functionValue(nullptr)
-    , functionStmt(nullptr)
 {}
 Value::Value(int value)
     : type(ValueType::NUMBER)
     , intValue(value)
-    , functionValue(nullptr)
-    , functionStmt(nullptr)
 {}
 Value::Value(const std::string& value)
     : type(ValueType::STRING)
     , stringValue(value)
     , intValue(0)
-    , functionValue(nullptr)
-    , functionStmt(nullptr)
 {}
-Value::Value(const std::string& name, LoxFunction function, int arity, const StmtFunction* functionStmt/*= nullptr*/)
+Value::Value(const std::shared_ptr<Function>& function)
     : type(ValueType::FUNCTION)
-    , stringValue(name)
-    , intValue(arity)
+    , intValue(0)
     , functionValue(function)
-    , functionStmt(functionStmt)
 {}
 
 void Value::Print() const
@@ -50,7 +40,7 @@ void Value::Print() const
             printf("nil\n");
             break;
         case ValueType::FUNCTION:
-            printf("func %s\n", stringValue.c_str());
+            printf("func %s\n", functionValue ? functionValue->name.c_str() : "<nil>");
             break;
     }
 }

@@ -7,19 +7,19 @@
 typedef std::unordered_map<std::string,Value>::iterator MapIterator;
 typedef std::unordered_map<std::string,Value>::const_iterator ConstMapIterator;
 
-Environment::Environment()
+Environment::Environment(const std::shared_ptr<Environment>& parent)
+	: m_parent(parent)
 {
-	Push();
 }
 
 Value Environment::Get(const Token* token) const 
 {
-	for (int i = m_envs.size() - 1; i >= 0; --i)
-	{
-		ConstMapIterator val = m_envs[i].find(token->stringLiteral);
-		if (val != m_envs[i].end())
-			return val->second;	
-	}
+	ConstMapIterator val = m_vars.find(token->stringLiteral);
+	if (val != m_vars.end())
+		return val->second;
+
+	if (m_parent)
+		return m_parent->Get(token);
 	
 	lox_error(*token, "Undefined variable");
     return Value();
@@ -27,36 +27,26 @@ Value Environment::Get(const Token* token) const
 
 void Environment::Assign(const Token* token, const Value& value) 
 {
-	for (int i = m_envs.size() - 1; i >= 0; --i)
+	MapIterator val = m_vars.find(token->stringLiteral);
+	if (val != m_vars.end())
 	{
-		MapIterator val = m_envs[i].find(token->stringLiteral);
-		if (val != m_envs[i].end())
-		{
-			val->second = value;	
-			return;
-		}
+		val->second = value;	
+		return;
 	}
-	
-	lox_error(*token, "Undefined variable");
+
+	if (m_parent)
+		m_parent->Assign(token, value);
+	else
+		lox_error(*token, "Undefined variable");
 }
 
 void Environment::Define(const Token* token, const Value& value)
 {
-	m_envs[m_envs.size() - 1].emplace(token->stringLiteral, value);
+	m_vars.emplace(token->stringLiteral, value);
 }
 
-void Environment::DefineFunction(const std::string& name, LoxFunction function, int arity)
+void Environment::DefineFunction(const std::string& name, LoxFunction function, int arity, const StmtFunction* stmt, const std::shared_ptr<Environment>& closure)
 {
-	m_envs[m_envs.size() - 1].emplace(name, Value(name, function, arity));
+	m_vars.emplace(name, Value(std::make_shared<Function>(name, function, stmt, arity, closure)));
 }
 
-void Environment::Push()
-{
-	m_envs.push_back(std::unordered_map<std::string,Value>());
-}
-
-void Environment::Pop()
-{
-	assert(m_envs.size() > 1);
-	m_envs.pop_back();
-}

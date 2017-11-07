@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include "function.h"
 
 enum class ValueType
 {
@@ -8,9 +9,6 @@ enum class ValueType
 
 struct Value;
 struct Interpreter;
-class StmtFunction;
-
-typedef Value (*LoxFunction)(Interpreter& interpreter, std::vector<Value>& args, const StmtFunction* stmt);
 
 struct Value
 {
@@ -18,13 +16,12 @@ struct Value
     Value(bool value);
     Value(int value);
     Value(const std::string& value);
-    Value(const std::string& name, LoxFunction function, int arity, const StmtFunction* functionStmt = nullptr);
+    Value(const std::shared_ptr<Function>& function);
 
     ValueType type;
     std::string stringValue;
     int intValue;
-    LoxFunction functionValue;
-    const StmtFunction* functionStmt;
+    std::shared_ptr<Function> functionValue;
 
     void Print() const;
     int ToInt() const;

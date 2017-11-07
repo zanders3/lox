@@ -139,8 +139,25 @@ struct Parser
         if (Match(TokenType::WHILE)) return WhileStatement();
         if (Match(TokenType::LEFT_BRACE)) return BlockStatement();
         if (Match(TokenType::FOR)) return ForStatement();
+        if (Match(TokenType::RETURN)) return ReturnStatement();
 
         return ExpressionStatement();
+    }
+
+    // returnStmt -> "return" expression? ";" 
+    StmtPtr ReturnStatement()
+    {
+        const Token* keyword = &Previous();
+        ExprPtr value;
+        if (!Check(TokenType::SEMICOLON)) {
+            value = Expression();
+        }
+        Consume(TokenType::SEMICOLON, "Expect ';' after return value");
+
+        std::unique_ptr<StmtReturn> stmt(new StmtReturn());
+        stmt->keyword = keyword;
+        stmt->value = std::move(value);
+        return stmt;
     }
 
     // forStmt -> "for" "(" (varDecl | exprStmt | ";") expression? ";" expression? ")" statement
