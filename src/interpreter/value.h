@@ -4,12 +4,13 @@
 
 enum class ValueType
 {
-    NIL, BOOL, NUMBER, STRING, FUNCTION, ERROR
+    NIL, BOOL, NUMBER, STRING, FUNCTION, CLASS, INSTANCE, ERROR
 };
 
 struct Value;
 struct Interpreter;
 struct ExprLiteral;
+struct LoxClass;
 
 struct Value
 {
@@ -19,7 +20,7 @@ struct Value
     Value(bool value);
     Value(int value);
     Value(const std::string& value);
-    Value(const std::shared_ptr<Function>& function);
+    Value(std::shared_ptr<LoxObject>&& function, ValueType type);
     Value(const ExprLiteral& literal);
 private:
     explicit Value(ValueType type);
@@ -28,7 +29,11 @@ public:
     ValueType type;
     std::string stringValue;
     int intValue;
-    std::shared_ptr<Function> functionValue;
+    std::shared_ptr<LoxObject> objectValue;
+
+    Function* GetFunction();
+    LoxClass* GetClass();
+    LoxInstance* GetInstance();
 
     void Print() const;
     int ToInt() const;

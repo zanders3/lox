@@ -5,7 +5,13 @@
 #include <string>
 #include "ast_visitors.h"
 
-typedef std::unordered_map<std::string,bool> ScopeMap;
+struct VariableScope
+{
+	int variableIdx;
+	bool isDefined;
+};
+
+typedef std::unordered_map<std::string,VariableScope> ScopeMap;
 
 enum class FunctionType
 {
@@ -22,7 +28,7 @@ struct Resolver : public ExprVisitor<void>, StmtVisitor<void>
 		ScopeMap& scope = HasScope() ? PeekScope() : globalScope;
 		auto item = scope.find(name.lexeme);
 		if (item == scope.end())
-			scope.emplace(name.lexeme, false);
+			scope.emplace(name.lexeme, VariableScope{ (int)scope.size(), false });
 		else
 		{
 			lox_error(name, "Variable with this name already declared in this scope");
@@ -33,17 +39,25 @@ struct Resolver : public ExprVisitor<void>, StmtVisitor<void>
 	void Define(const Token& name)
 	{
 		ScopeMap& scope = HasScope() ? PeekScope() : globalScope;
-		scope.erase(name.lexeme);
-		scope.emplace(name.lexeme, true);
+		auto item = scope.find(name.lexeme);
+		if (item == scope.end())
+		{
+			lox_error(name, "Variable not declared");
+			hadError = true;
+		}
+		else
+			item->second.isDefined = true;
 	}
 
-	void ResolveLocal(const Token* name, int& outDepth)
+	void ResolveVariable(const Token* name, int& outDepth, int& outIdx)
 	{
 		for (int i = scopes.size() - 1; i >= 0; --i)
 		{
-			if (scopes[i].find(name->lexeme) != scopes[i].end())
+			auto item = scopes[i].find(name->lexeme);
+			if (item != scopes[i].end())
 			{
 				outDepth = (int)scopes.size() - 1 - i;
+				outIdx = item->second.variableIdx;
 				return;
 			}
 		}
@@ -88,20 +102,20 @@ struct Resolver : public ExprVisitor<void>, StmtVisitor<void>
     	{
     		ScopeMap& scope = PeekScope();
     		auto item = scope.find(expr.name->lexeme);
-    		if (item != scope.end() && item->second == false)
+    		if (item != scope.end() && item->second.isDefined == false)
     		{
     			lox_error(*expr.name, "Cannot read local variable its own initialiser");
     			hadError = true;
     		}
     	}
 
-    	ResolveLocal(expr.name, expr.depth); 
+    	ResolveVariable(expr.name, expr.depth, expr.idx);
     }
 
     void VisitAssign(ExprAssign& expr) override
     {
     	VisitExpr(*expr.value);
-    	ResolveLocal(expr.name, expr.depth);
+    	ResolveVariable(expr.name, expr.depth, expr.idx);
     }
 
     void VisitExpression(StmtExpression& expr) override
@@ -137,6 +151,7 @@ struct Resolver : public ExprVisitor<void>, StmtVisitor<void>
     	Define(*stmt.name);
 
     	FunctionType enclosingFunctionType = currentFunction;
+    	currentFunction = FunctionType::Function;
     	scopes.emplace_back();
     	for (const Token* param : stmt.params)
     	{
@@ -181,7 +196,8 @@ struct Resolver : public ExprVisitor<void>, StmtVisitor<void>
 
     void VisitClass(StmtClass& stmt) override
     {
-    	//TODO
+    	Declare(*stmt.name);
+    	Define(*stmt.name);
     }
 
  	std::vector<ScopeMap> scopes;

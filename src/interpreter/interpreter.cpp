@@ -1,6 +1,7 @@
 #include "interpreter.h"
 #include "lox.h"
 #include "env.h"
+#include "class.h"
 
 Interpreter::Interpreter(const std::shared_ptr<Environment>& env)
     : environment(env)
@@ -62,8 +63,11 @@ Value Interpreter::VisitBinary(const ExprBinary& expr)
                     case ValueType::BOOL: rightStr = right.intValue ? "true" : "false"; break;
                     case ValueType::NUMBER: rightStr = std::to_string(right.intValue).c_str(); break;
                     case ValueType::STRING: rightStr = right.stringValue.c_str(); break;
-                    case ValueType::FUNCTION: rightStr = (std::string("func ") + right.stringValue).c_str(); break;
-                    case ValueType::ERROR: return Value::Error;
+                    case ValueType::FUNCTION:
+                    case ValueType::CLASS:
+                    case ValueType::INSTANCE:
+                    case ValueType::ERROR: 
+                        return Value::Error;
                 }
 
                 return Value(left.stringValue + rightStr);
@@ -103,13 +107,22 @@ Value Interpreter::VisitBinary(const ExprBinary& expr)
 Value Interpreter::VisitCall(const ExprCall& expr) 
 {
     Value callee = VisitExpr(*expr.callee);
-    if (callee.type != ValueType::FUNCTION || !callee.functionValue)
+    
+    if (callee.type == ValueType::FUNCTION && callee.objectValue)
+        return callee.GetFunction()->Call(*this, expr);
+    else if (callee.type == ValueType::CLASS && callee.objectValue)
     {
-        lox_error(*expr.paren, "Callee is not a function");
-        return Value::Error;
+        if (expr.args.size() != 0)
+        {
+            lox_error(*expr.paren, "Expected 0 args");
+            return Value::Error;
+        }
+
+        return Value(std::make_shared<LoxInstance>(std::static_pointer_cast<LoxClass>(callee.objectValue)), ValueType::INSTANCE);
     }
 
-    return callee.functionValue->Call(*this, expr);
+    lox_error(*expr.paren, "Callee is not a function");
+    return Value::Error;
 }
 
 Value Interpreter::VisitGrouping(const ExprGrouping& group)
@@ -262,6 +275,8 @@ bool Interpreter::VisitWhile(const StmtWhile& stmt)
 
 bool Interpreter::VisitClass(const StmtClass& stmt)
 {
-    //TODO
-    return false;
+    if (!environment->Define(stmt.name, Value()))
+        return false;
+    return environment->AssignAt(stmt.name, Value(std::make_shared<LoxClass>(stmt.name->lexeme), ValueType::CLASS), GlobalVariable);
+
 }

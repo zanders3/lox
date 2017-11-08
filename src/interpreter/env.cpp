@@ -67,6 +67,6 @@ bool Environment::Define(const Token* token, const Value& value)
 
 void Environment::DefineFunction(const std::string& name, LoxFunction function, int arity, const StmtFunction* stmt, const std::shared_ptr<Environment>& closure)
 {
-	m_vars.emplace(name, Value(std::make_shared<Function>(name, function, stmt, arity, closure)));
+	m_vars.emplace(name, Value(std::make_shared<Function>(name, function, stmt, arity, closure), ValueType::FUNCTION));
 }
 

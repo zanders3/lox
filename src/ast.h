@@ -29,7 +29,7 @@ struct ExprAssign : public Expr
     }
     const Token* name;
     ExprPtr value;
-    int depth;
+    int depth, idx;
 };
 
 struct ExprBinary : public Expr
@@ -148,7 +148,7 @@ struct ExprVariable : public Expr
     }
 
     const Token* name;
-    int depth;
+    int depth, idx;
 };
 
 enum class StmtType

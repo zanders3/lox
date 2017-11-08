@@ -19,7 +19,7 @@ Value Function::Call(Interpreter& interpreter, const ExprCall& expr)
         char buf[64];
         std::snprintf(buf, 64, "Expected %d args but got %d", arity, (int)expr.args.size());
         lox_error(*expr.paren, buf);
-        return Value();
+        return Value::Error;
     }
 
     std::vector<Value> args;

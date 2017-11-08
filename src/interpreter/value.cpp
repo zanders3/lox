@@ -20,10 +20,10 @@ Value::Value(const std::string& value)
     , stringValue(value)
     , intValue(0)
 {}
-Value::Value(const std::shared_ptr<Function>& function)
-    : type(ValueType::FUNCTION)
+Value::Value(std::shared_ptr<LoxObject>&& object, ValueType type)
+    : type(type)
     , intValue(0)
-    , functionValue(function)
+    , objectValue(object)
 {}
 Value::Value(const ExprLiteral& literal)
     : stringValue(literal.stringValue)
@@ -43,6 +43,21 @@ Value::Value(ValueType type)
     , intValue(0)
 {}
 
+Function* Value::GetFunction() 
+{ 
+    return static_cast<Function*>(objectValue.get());
+}
+
+LoxClass* Value::GetClass()
+{ 
+    return static_cast<LoxClass*>(objectValue.get()); 
+}
+
+LoxInstance* Value::GetInstance() 
+{ 
+    return static_cast<LoxInstance*>(objectValue.get()); 
+}
+
 void Value::Print() const
 {
     switch (type)
@@ -60,7 +75,13 @@ void Value::Print() const
             printf("nil\n");
             break;
         case ValueType::FUNCTION:
-            printf("func %s\n", functionValue ? functionValue->name.c_str() : "<nil>");
+            printf("func %s\n", objectValue ? static_cast<const Function*>(objectValue.get())->name.c_str() : "<nil>");
+            break;
+        case ValueType::CLASS:
+            printf("class %s\n", objectValue ? static_cast<const LoxClass*>(objectValue.get())->name.c_str() : "<nil>");
+            break;
+        case ValueType::INSTANCE:
+            printf("instance %s\n", objectValue ? static_cast<const LoxInstance*>(objectValue.get())->loxClass->name.c_str() : "<nil>");
             break;
         case ValueType::ERROR:
             printf("<error>\n");

@@ -102,6 +102,8 @@ struct Parser
         const Token* name = Consume(TokenType::IDENTIFIER, "Expected class name");
         if (!name)
             return StmtPtr();
+        if (!Consume(TokenType::LEFT_BRACE, "Expect '{' before class body"))
+            return StmtPtr();
 
         StmtFunctionPtrList methods;
         while (!Check(TokenType::RIGHT_BRACE) && !IsAtEnd())
