@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "lox.h"
-#include "env.h"
+#include "interpreter/env.h"
 #include <string>
 #include <sstream>
 #include <fstream>
@@ -36,6 +36,7 @@ int main(int argc, char** argv)
 		{
 			printf("> ");
 			const char* line = fgets(lineBuf, 255, stdin);
+            if (!line) continue;
 			printf("%s\n", line);
 			lox_run(env, line, strlen(line));
 		}

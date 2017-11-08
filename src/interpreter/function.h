@@ -7,7 +7,7 @@ struct Value;
 struct Interpreter;
 struct Expr;
 struct ExprCall;
-class StmtFunction;
+struct StmtFunction;
 class Environment;
 
 typedef Value (*LoxFunction)(Interpreter& interpreter, std::vector<Value>& args);

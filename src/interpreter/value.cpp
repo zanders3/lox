@@ -1,4 +1,5 @@
 #include "value.h"
+#include "ast.h"
 
 Value::Value()
     : type(ValueType::NIL)
@@ -22,6 +23,19 @@ Value::Value(const std::shared_ptr<Function>& function)
     , intValue(0)
     , functionValue(function)
 {}
+Value::Value(const ExprLiteral& literal)
+    : stringValue(literal.stringValue)
+    , intValue(literal.intValue)
+{
+    switch (literal.litType)
+    {
+        case LitType::Int: type = ValueType::NUMBER; break;
+        case LitType::Bool: type = ValueType::BOOL; break;
+        case LitType::String: type = ValueType::STRING; break;
+        default:
+        case LitType::Nil: type = ValueType::NIL; break;
+    }
+}
 
 void Value::Print() const
 {

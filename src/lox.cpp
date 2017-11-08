@@ -1,7 +1,7 @@
 #include "lox.h"
 #include "scanner.h"
 #include "parser.h"
-#include "interpreter.h"
+#include "interpreter/interpreter.h"
 
 bool g_hadError = false;
 

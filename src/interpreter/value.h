@@ -9,6 +9,7 @@ enum class ValueType
 
 struct Value;
 struct Interpreter;
+struct ExprLiteral;
 
 struct Value
 {
@@ -17,6 +18,7 @@ struct Value
     Value(int value);
     Value(const std::string& value);
     Value(const std::shared_ptr<Function>& function);
+    Value(const ExprLiteral& literal);
 
     ValueType type;
     std::string stringValue;

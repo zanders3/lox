@@ -124,11 +124,7 @@ struct Parser
         std::vector<StmtPtr> body;
         ParseBlock(body);
 
-        std::unique_ptr<StmtFunction> stmt(new StmtFunction());
-        stmt->name = name;
-        stmt->params = params;
-        stmt->body = std::move(body);
-        return stmt;
+        return StmtPtr(new StmtFunction(name, std::move(params), std::move(body)));
     }
 
     // statement -> exprStmt | forStmt | ifStmt | printStmt | returnStmt | whileStmt | block
@@ -154,10 +150,7 @@ struct Parser
         }
         Consume(TokenType::SEMICOLON, "Expect ';' after return value");
 
-        std::unique_ptr<StmtReturn> stmt(new StmtReturn());
-        stmt->keyword = keyword;
-        stmt->value = std::move(value);
-        return stmt;
+        return StmtPtr(new StmtReturn(keyword, std::move(value)));
     }
 
     // forStmt -> "for" "(" (varDecl | exprStmt | ";") expression? ";" expression? ")" statement
@@ -189,31 +182,25 @@ struct Parser
 
         if (increment)
         {
-            std::unique_ptr<StmtExpression> incrementExpr(new StmtExpression());
-            incrementExpr->expr = std::move(increment);
-
-            std::unique_ptr<StmtBlock> stmt(new StmtBlock());
-            stmt->stmts.push_back(std::move(body));
-            stmt->stmts.push_back(std::move(incrementExpr));
-            body = std::move(stmt);
+            StmtPtrList block;
+            block.push_back(std::move(body));
+            block.push_back(StmtPtr(new StmtExpression(std::move(increment))));
+            body = StmtPtr(new StmtBlock(std::move(block)));
         }
 
         if (!condition)
-            condition = Literal(Value(true));
+            condition = ExprPtr(new ExprLiteral(true));
 
-        std::unique_ptr<StmtWhile> whileStmt(new StmtWhile());
-        whileStmt->condition = std::move(condition);
-        whileStmt->body = std::move(body);
-        body = std::move(whileStmt);
+        body = StmtPtr(new StmtWhile(std::move(condition), std::move(body)));
 
         if (initialiser)
         {
-            std::unique_ptr<StmtBlock> stmt(new StmtBlock());
-            stmt->stmts.push_back(std::move(initialiser));
-            stmt->stmts.push_back(std::move(body));
-            body = std::move(stmt);
+            StmtPtrList block;
+            block.push_back(std::move(initialiser));
+            block.push_back(std::move(body));
+            body = StmtPtr(new StmtBlock(std::move(block)));
         }
-
+        
         return body;
     }
 
@@ -230,10 +217,7 @@ struct Parser
     {
         std::vector<StmtPtr> stmts;
         ParseBlock(stmts);
-        
-        std::unique_ptr<StmtBlock> stmt(new StmtBlock());
-        stmt->stmts = std::move(stmts);
-        return stmt;
+        return StmtPtr(new StmtBlock(std::move(stmts)));
     }
 
     // whileStmt -> "while" "(" expression ")" statement ;
@@ -246,10 +230,7 @@ struct Parser
             return StmtPtr();
         StmtPtr body = Statement();
 
-        std::unique_ptr<StmtWhile> stmt(new StmtWhile());
-        stmt->condition = std::move(condition);
-        stmt->body = std::move(body);
-        return stmt;
+        return StmtPtr(new StmtWhile(std::move(condition), std::move(body)));
     }
 
     // ifStmt    -> "if" "(" expression ")" statement ( "else" statement )? ;
@@ -266,11 +247,7 @@ struct Parser
         if (Match(TokenType::ELSE))
             elseBranch = Statement();
 
-        std::unique_ptr<StmtIf> stmt(new StmtIf());
-        stmt->condition = std::move(condition);
-        stmt->thenBranch = std::move(thenBranch);
-        stmt->elseBranch = std::move(elseBranch);
-        return stmt;
+        return StmtPtr(new StmtIf(std::move(condition), std::move(thenBranch), std::move(elseBranch)));
     }
 
     // printStmt -> "print" expression ";"
@@ -282,9 +259,7 @@ struct Parser
         if (!Consume(TokenType::SEMICOLON, "Expect ';' after expression"))
             return StmtPtr();
         
-        std::unique_ptr<StmtPrint> stmt(new StmtPrint());
-        stmt->expr = std::move(expr);
-        return stmt;
+        return StmtPtr(new StmtPrint(std::move(expr)));
     }
 
     // varDecl -> "var" IDENTIFIER ( "=" expression )? ";"
@@ -301,11 +276,7 @@ struct Parser
         if (!Consume(TokenType::SEMICOLON, "Expect ';' after variable declaration"))
             return StmtPtr();
 
-        std::unique_ptr<StmtVar> stmt(new StmtVar());
-        stmt->name = name;
-        if (initialiser)
-            stmt->initialiser = std::move(initialiser);
-        return stmt;
+        return StmtPtr(new StmtVar(name, std::move(initialiser)));
     }
 
     // exprStmt -> expression ";"
@@ -316,10 +287,7 @@ struct Parser
             return StmtPtr();
         if (!Consume(TokenType::SEMICOLON, "Expect ';' after expression"))
             return StmtPtr();
-        
-        std::unique_ptr<StmtExpression> stmt(new StmtExpression());
-        stmt->expr = std::move(expr);
-        return stmt;
+        return StmtPtr(new StmtExpression(std::move(expr)));
     }
 
     // expression -> assignment
@@ -343,13 +311,10 @@ struct Parser
             if (!value)
                 return ExprPtr();
 
-            if (expr->type == ASTType::ExprVariable)
+            if (expr->type == ExprType::Variable)
             {
-                const Token* name = ((ExprVariable*)expr.get())->name;
-                std::unique_ptr<ExprAssign> assignExpr(new ExprAssign());
-                assignExpr->name = name;
-                assignExpr->value = std::move(value);
-                return assignExpr;
+                const Token* name = static_cast<const ExprVariable*>(expr.get())->name;
+                return ExprPtr(new ExprAssign(name, std::move(value)));
             }
 
             lox_error(equals, "Invalid assignment target");
@@ -371,12 +336,7 @@ struct Parser
             ExprPtr right = LogicOr();
             if (!right)
                 return ExprPtr();
-
-            std::unique_ptr<ExprLogical> newExpr(new ExprLogical());
-            newExpr->left = std::move(expr);
-            newExpr->op = &op;
-            newExpr->right = std::move(right);
-            expr = std::move(newExpr);
+            expr = ExprPtr(new ExprLogical(std::move(expr), &op, std::move(right)));
         }
 
         return expr;
@@ -395,12 +355,7 @@ struct Parser
             ExprPtr right = Equality();
             if (!right)
                 return ExprPtr();
-
-            std::unique_ptr<ExprLogical> newExpr(new ExprLogical());
-            newExpr->left = std::move(expr);
-            newExpr->op = &op;
-            newExpr->right = std::move(right);
-            expr = std::move(newExpr);
+            expr = ExprPtr(new ExprLogical(std::move(expr), &op, std::move(right)));
         }
 
         return expr;
@@ -419,12 +374,7 @@ struct Parser
             ExprPtr right = Comparison();
             if (!right)
                 return ExprPtr();
-
-            std::unique_ptr<ExprBinary> exprBin(new ExprBinary());
-            exprBin->left = std::move(expr);
-            exprBin->op = &op;
-            exprBin->right = std::move(right);
-            expr = std::move(exprBin);
+            expr = ExprPtr(new ExprBinary(std::move(expr), &op, std::move(right)));
         }
 
         return expr;
@@ -443,11 +393,7 @@ struct Parser
             ExprPtr right = Addition();
             if (!right)
                 return ExprPtr();
-            std::unique_ptr<ExprBinary> exprBin(new ExprBinary());
-            exprBin->left = std::move(expr);
-            exprBin->op = &op;
-            exprBin->right = std::move(right);
-            expr = std::move(exprBin);
+            expr = ExprPtr(new ExprBinary(std::move(expr), &op, std::move(right)));
         }
 
         return expr;
@@ -466,11 +412,7 @@ struct Parser
             ExprPtr right = Multiplication();
             if (!right)
                 return ExprPtr();
-            std::unique_ptr<ExprBinary> exprBin(new ExprBinary());
-            exprBin->left = std::move(expr);
-            exprBin->op = &op;
-            exprBin->right = std::move(right);
-            expr = std::move(exprBin);
+            expr = ExprPtr(new ExprBinary(std::move(expr), &op, std::move(right)));
         }
 
         return expr;
@@ -489,11 +431,7 @@ struct Parser
             ExprPtr right = Unary();
             if (!right)
                 return ExprPtr();
-            std::unique_ptr<ExprBinary> exprBin(new ExprBinary());
-            exprBin->left = std::move(expr);
-            exprBin->op = &op;
-            exprBin->right = std::move(right);
-            expr = std::move(exprBin);
+            expr = ExprPtr(new ExprBinary(std::move(expr), &op, std::move(right)));
         }
 
         return expr;
@@ -509,10 +447,7 @@ struct Parser
             ExprPtr right = Unary();
             if (!right)
                 return ExprPtr();
-            std::unique_ptr<ExprUnary> exprUn(new ExprUnary());
-            exprUn->op = &op;
-            exprUn->right = std::move(right);
-            return exprUn;
+            return ExprPtr(new ExprUnary(&op, std::move(right)));
         }
 
         return Call();
@@ -533,12 +468,7 @@ struct Parser
         const Token* token = Consume(TokenType::RIGHT_PAREN, "Expect ')' after arguments");
         if (!token)
             return ExprPtr();
-
-        std::unique_ptr<ExprCall> expr(new ExprCall());
-        expr->callee = std::move(callee);
-        expr->paren = token;
-        expr->args = std::move(args);
-        return expr;
+        return ExprPtr(new ExprCall(std::move(callee), token, std::move(args)));
     }
 
     //call -> primary ( "(" arguments? ")" )*
@@ -560,14 +490,14 @@ struct Parser
     //               | IDENTIFIER
     ExprPtr Primary()
     {
-        if (Match(TokenType::FALSE)) return Literal(Value(false));
-        if (Match(TokenType::TRUE)) return Literal(Value(true));
-        if (Match(TokenType::NIL)) return Literal(Value());
+        if (Match(TokenType::FALSE)) return ExprPtr(new ExprLiteral(false));
+        if (Match(TokenType::TRUE)) return ExprPtr(new ExprLiteral(true));
+        if (Match(TokenType::NIL)) return ExprPtr(new ExprLiteral());
 
         if (Match(TokenType::NUMBER))
-            return Literal(Value(Previous().numberLiteral));
+            return ExprPtr(new ExprLiteral(Previous().numberLiteral));
         if (Match(TokenType::STRING))
-            return Literal(Value(Previous().stringLiteral));
+            return ExprPtr(new ExprLiteral(Previous().stringLiteral));
 
         if (Match(TokenType::LEFT_PAREN))
         {
@@ -576,27 +506,14 @@ struct Parser
                 return ExprPtr();
             if (!Consume(TokenType::RIGHT_PAREN, "Expect ')' after expression"))
                 return ExprPtr();
-            std::unique_ptr<ExprGrouping> exprGroup(new ExprGrouping());
-            exprGroup->expr = std::move(expr);
-            return exprGroup;
+            return ExprPtr(new ExprGrouping(std::move(expr)));
         }
 
         if (Match(TokenType::IDENTIFIER))
-        {
-            std::unique_ptr<ExprVariable> var(new ExprVariable());
-            var->name = &Previous();
-            return var;
-        }
+            return ExprPtr(new ExprVariable(&Previous()));
 
         lox_error(Peek(), "Expect expression");
         return ExprPtr();
-    }
-
-    ExprPtr Literal(const Value& value)
-    {
-        std::unique_ptr<ExprLiteral> expr(new ExprLiteral());
-        expr->value = value;
-        return expr;
     }
 };
 

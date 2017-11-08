@@ -8,8 +8,8 @@ Function::Function(const std::string& name, LoxFunction function, const StmtFunc
 	: name(name)
 	, function(function)
 	, stmt(stmt)
-	, arity(arity)
 	, closure(closure)
+    , arity(arity)
 {}
 
 Value Function::Call(Interpreter& interpreter, const ExprCall& expr)
@@ -23,8 +23,8 @@ Value Function::Call(Interpreter& interpreter, const ExprCall& expr)
     }
 
     std::vector<Value> args;
-    for (const std::unique_ptr<Expr>& arg : expr.args)
-        args.push_back(arg->Visit(interpreter));
+    for (const ExprPtr& arg : expr.args)
+        args.push_back(interpreter.VisitExpr(*arg));
 
     if (function)
     	return function(interpreter, args);

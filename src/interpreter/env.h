@@ -2,10 +2,10 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "value.h"
+#include "interpreter/value.h"
 
-class Token;
-class StmtFunction;
+struct Token;
+struct StmtFunction;
 
 class Environment
 {

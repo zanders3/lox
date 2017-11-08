@@ -41,8 +41,8 @@ static bool CheckNumbers(const Token* op, const Value& operand)
 
 Value Interpreter::VisitBinary(const ExprBinary& expr)
 {
-    Value left = expr.left->Visit(*this);
-    Value right = expr.right->Visit(*this);
+    Value left = VisitExpr(*expr.left);
+    Value right = VisitExpr(*expr.right);
     switch (expr.op->type)
     {
         case TokenType::MINUS:
@@ -100,7 +100,7 @@ Value Interpreter::VisitBinary(const ExprBinary& expr)
 
 Value Interpreter::VisitCall(const ExprCall& expr) 
 {
-    Value callee = expr.callee->Visit(*this);
+    Value callee = VisitExpr(*expr.callee);
     if (callee.type != ValueType::FUNCTION || !callee.functionValue)
     {
         lox_error(*expr.paren, "Callee is not a function");
@@ -112,12 +112,12 @@ Value Interpreter::VisitCall(const ExprCall& expr)
 
 Value Interpreter::VisitGrouping(const ExprGrouping& group)
 {
-    return group.expr->Visit(*this);
+    return VisitExpr(*group.expr);
 }
 
 Value Interpreter::VisitLiteral(const ExprLiteral& lit) 
 {
-    return lit.value;
+    return Value(lit);
 }
 
 static bool IsTruthy(const Value& val)
@@ -129,7 +129,7 @@ static bool IsTruthy(const Value& val)
 
 Value Interpreter::VisitLogical(const ExprLogical& expr) 
 {
-    Value left = expr.left->Visit(*this);
+    Value left = VisitExpr(*expr.left);
     if (expr.op->type == TokenType::OR)
     {
         if (IsTruthy(left)) return left;
@@ -139,12 +139,12 @@ Value Interpreter::VisitLogical(const ExprLogical& expr)
         if (!IsTruthy(left)) return left;
     }
     
-    return expr.right->Visit(*this);
+    return VisitExpr(*expr.right);
 }
 
 Value Interpreter::VisitUnary(const ExprUnary& expr)
 {
-    Value right = expr.right->Visit(*this);
+    Value right = VisitExpr(*expr.right);
     switch (expr.op->type)
     {
         case TokenType::MINUS:
@@ -160,7 +160,7 @@ Value Interpreter::VisitUnary(const ExprUnary& expr)
 
 void Interpreter::VisitExpression(const StmtExpression& expr) 
 {
-    expr.expr->Visit(*this);
+    VisitExpr(*expr.expr);
 }
 
 Value Interpreter::VisitVariable(const ExprVariable& expr) 
@@ -170,7 +170,7 @@ Value Interpreter::VisitVariable(const ExprVariable& expr)
 
 Value Interpreter::VisitAssign(const ExprAssign& expr)
 {
-    Value value = expr.value->Visit(*this);
+    Value value = VisitExpr(*expr.value);
     environment->Assign(expr.name, value);
     return value;
 }
@@ -178,17 +178,17 @@ Value Interpreter::VisitAssign(const ExprAssign& expr)
 void Interpreter::VisitVar(const StmtVar& stmt)
 {
     Value value;
-    if (stmt.initialiser)
-        value = stmt.initialiser->Visit(*this);
+    if (stmt.init)
+        value = VisitExpr(*stmt.init);
     environment->Define(stmt.name, value);
 }
 
-void Interpreter::ExecuteBlock(const std::vector<std::unique_ptr<Stmt>>& stmts)
+void Interpreter::ExecuteBlock(const StmtPtrList& stmts)
 {
-    for (const std::unique_ptr<Stmt>& stmt : stmts)
+    for (const StmtPtr& stmt : stmts)
     {
         if (stmt)
-            stmt->Visit(*this);
+            VisitStmt(*stmt);
         if (g_hadError || hadReturn)
             return;
     }
@@ -209,25 +209,25 @@ void Interpreter::VisitFunction(const StmtFunction& stmt)
 
 void Interpreter::VisitIf(const StmtIf& stmt) 
 {
-	if (IsTruthy(stmt.condition->Visit(*this)))
-		stmt.thenBranch->Visit(*this);
+	if (IsTruthy(VisitExpr(*stmt.condition)))
+		VisitStmt(*stmt.thenBranch);
 	else if (stmt.elseBranch)
-		stmt.elseBranch->Visit(*this);
+		VisitStmt(*stmt.elseBranch);
 }
 
 void Interpreter::VisitPrint(const StmtPrint& expr) 
 {
-    expr.expr->Visit(*this).Print();
+    VisitExpr(*expr.expr).Print();
 }
 
 void Interpreter::VisitReturn(const StmtReturn& stmt) 
 {
-    returnValue = stmt.value->Visit(*this);
+    returnValue = VisitExpr(*stmt.value);
     hadReturn = true;
 }
 
 void Interpreter::VisitWhile(const StmtWhile& stmt) 
 {
-	while (IsTruthy(stmt.condition->Visit(*this)))
-		stmt.body->Visit(*this);
+	while (IsTruthy(VisitExpr(*stmt.condition)))
+		VisitStmt(*stmt.body);
 }
