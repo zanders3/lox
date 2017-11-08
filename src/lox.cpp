@@ -1,6 +1,7 @@
 #include "lox.h"
 #include "scanner.h"
 #include "parser.h"
+#include "resolver.h"
 #include "interpreter/interpreter.h"
 
 void lox_run(const std::shared_ptr<Environment>& env, const char* source, int sourceLen)
@@ -8,8 +9,10 @@ void lox_run(const std::shared_ptr<Environment>& env, const char* source, int so
     std::vector<Token> tokens;
     scanner_scan(source, sourceLen, tokens);
 
-    std::vector<std::unique_ptr<Stmt>> stmts;
+    StmtPtrList stmts;
     parser_parse(tokens, stmts);
+
+    resolver_resolve(stmts);
 
     Interpreter interpreter(env);
     interpreter.ExecuteBlock(stmts);

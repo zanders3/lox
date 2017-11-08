@@ -5,4 +5,4 @@
 
 struct Token;
 
-void parser_parse(const std::vector<Token>& tokens, std::vector<std::unique_ptr<Stmt>>& stmts);
+void parser_parse(const std::vector<Token>& tokens, StmtPtrList& stmts);
