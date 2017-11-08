@@ -179,6 +179,11 @@ struct Resolver : public ExprVisitor<void>, StmtVisitor<void>
     	VisitStmt(*stmt.body);
     }
 
+    void VisitClass(StmtClass& stmt) override
+    {
+    	//TODO
+    }
+
  	std::vector<ScopeMap> scopes;
 	ScopeMap globalScope;
 	FunctionType currentFunction = FunctionType::None;

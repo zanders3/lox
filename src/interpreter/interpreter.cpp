@@ -259,3 +259,9 @@ bool Interpreter::VisitWhile(const StmtWhile& stmt)
     }
     return true;
 }
+
+bool Interpreter::VisitClass(const StmtClass& stmt)
+{
+    //TODO
+    return false;
+}

@@ -153,7 +153,7 @@ struct ExprVariable : public Expr
 
 enum class StmtType
 {
-    Block, Expression, Function, If, Print, Return, Var, While
+    Block, Expression, Function, If, Print, Return, Var, While, Class
 };
 
 struct Stmt
@@ -264,4 +264,20 @@ struct StmtWhile : public Stmt
 
     ExprPtr condition;
     StmtPtr body;
+};
+
+typedef std::unique_ptr<StmtFunction> StmtFunctionPtr;
+typedef std::vector<std::unique_ptr<StmtFunction>> StmtFunctionPtrList;
+
+struct StmtClass : public Stmt
+{
+    StmtClass(const Token* name, StmtFunctionPtrList&& methods)
+        : name(name)
+        , methods(std::move(methods))
+    {
+        type = StmtType::Class;   
+    }
+
+    const Token* name;
+    StmtFunctionPtrList methods;
 };

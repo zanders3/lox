@@ -81,11 +81,12 @@ struct Parser
         }
     }
 
-    //declaration -> funcDecl | varDecl | statement
+    //declaration -> classDecl | funcDecl | varDecl | statement
     StmtPtr Declaration()
     {
         StmtPtr stmt;
-        if (Match(TokenType::FUN)) stmt = Function();
+        if (Match(TokenType::CLASS)) stmt = Class();
+        else if (Match(TokenType::FUN)) stmt = Function();
         else if (Match(TokenType::VAR)) stmt = VarDecl();
         else stmt = Statement();
 
@@ -95,15 +96,30 @@ struct Parser
         return stmt;
     }
 
+    // classDecl -> "class" IDENTIFIER "{" function* "}"
+    StmtPtr Class()
+    {
+        const Token* name = Consume(TokenType::IDENTIFIER, "Expected class name");
+        if (!name)
+            return StmtPtr();
+
+        StmtFunctionPtrList methods;
+        while (!Check(TokenType::RIGHT_BRACE) && !IsAtEnd())
+            methods.push_back(Function());
+
+        Consume(TokenType::RIGHT_BRACE, "Expected '}' after class body");
+        return StmtPtr(new StmtClass(name, std::move(methods)));
+    }
+
     // funcDecl -> "fun" function
     // function -> IDENTIFIER "(" parameters? ")" block
-    StmtPtr Function()
+    StmtFunctionPtr Function()
     {
         const Token* name = Consume(TokenType::IDENTIFIER, "Expected function name");
         if (!name)
-            return StmtPtr();
+            return StmtFunctionPtr();
         if (!Consume(TokenType::LEFT_PAREN, "Expected '(' after function name"))
-            return StmtPtr();
+            return StmtFunctionPtr();
 
         std::vector<const Token*> params;
         if (!Check(TokenType::RIGHT_PAREN))
@@ -112,19 +128,19 @@ struct Parser
             {
                 const Token* param = Consume(TokenType::IDENTIFIER, "Expected parameter name");
                 if (!param)
-                    return StmtPtr();
+                    return StmtFunctionPtr();
                 params.push_back(param);
             }
             while (Match(TokenType::COMMA));
         }
         if (!Consume(TokenType::RIGHT_PAREN, "Expected ')' after parameters"))
-            return StmtPtr();
+            return StmtFunctionPtr();
         if (!Consume(TokenType::LEFT_BRACE, "Expected '{' before function body"))
-            return StmtPtr();
+            return StmtFunctionPtr();
         std::vector<StmtPtr> body;
         ParseBlock(body);
 
-        return StmtPtr(new StmtFunction(name, std::move(params), std::move(body)));
+        return StmtFunctionPtr(new StmtFunction(name, std::move(params), std::move(body)));
     }
 
     // statement -> exprStmt | forStmt | ifStmt | printStmt | returnStmt | whileStmt | block

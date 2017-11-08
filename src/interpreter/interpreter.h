@@ -28,6 +28,7 @@ struct Interpreter : public ConstStmtVisitor<bool>, ConstExprVisitor<Value>
     bool VisitPrint(const StmtPrint& expr) override;
     bool VisitReturn(const StmtReturn& stmt) override;
     bool VisitWhile(const StmtWhile& stmt) override;
+    bool VisitClass(const StmtClass& stmt) override;
 
     Value returnValue;
     std::shared_ptr<Environment> environment;

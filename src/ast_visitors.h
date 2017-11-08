@@ -75,6 +75,7 @@ template <typename Ret> struct StmtVisitor
     virtual Ret VisitReturn(StmtReturn& stmt) = 0;
     virtual Ret VisitVar(StmtVar& stmt) = 0;
     virtual Ret VisitWhile(StmtWhile& stmt) = 0;
+    virtual Ret VisitClass(StmtClass& stmt) = 0;
 
     Ret VisitStmt(Stmt& stmt)
     {
@@ -88,6 +89,7 @@ template <typename Ret> struct StmtVisitor
             case StmtType::Return: return VisitReturn(static_cast<StmtReturn&>(stmt));
             case StmtType::Var: return VisitVar(static_cast<StmtVar&>(stmt));
             case StmtType::While: return VisitWhile(static_cast<StmtWhile&>(stmt));
+            case StmtType::Class: return VisitClass(static_cast<StmtClass&>(stmt));
             default: return Ret();
         }
     }
@@ -105,6 +107,7 @@ template <typename Ret> struct ConstStmtVisitor
     virtual Ret VisitReturn(const StmtReturn& stmt) = 0;
     virtual Ret VisitVar(const StmtVar& stmt) = 0;
     virtual Ret VisitWhile(const StmtWhile& stmt) = 0;
+    virtual Ret VisitClass(const StmtClass& stmt) = 0;
 
     Ret VisitStmt(Stmt& stmt)
     {
@@ -118,6 +121,7 @@ template <typename Ret> struct ConstStmtVisitor
             case StmtType::Return: return VisitReturn(static_cast<const StmtReturn&>(stmt));
             case StmtType::Var: return VisitVar(static_cast<const StmtVar&>(stmt));
             case StmtType::While: return VisitWhile(static_cast<const StmtWhile&>(stmt));
+            case StmtType::Class: return VisitClass(static_cast<const StmtClass&>(stmt));
             default: return Ret();
         }
     }
