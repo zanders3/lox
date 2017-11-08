@@ -156,7 +156,7 @@ struct Parser
     // forStmt -> "for" "(" (varDecl | exprStmt | ";") expression? ";" expression? ")" statement
     StmtPtr ForStatement()
     {
-        if (!Consume(TokenType::LEFT_BRACE, "Expect '(' after 'for'"))
+        if (!Consume(TokenType::LEFT_PAREN, "Expect '(' after 'for'"))
             return StmtPtr();
         
         StmtPtr initialiser;

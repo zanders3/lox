@@ -1,6 +1,8 @@
 #include "value.h"
 #include "ast.h"
 
+const Value Value::Error = Value(ValueType::ERROR);
+
 Value::Value()
     : type(ValueType::NIL)
     , intValue(0)
@@ -36,6 +38,10 @@ Value::Value(const ExprLiteral& literal)
         case LitType::Nil: type = ValueType::NIL; break;
     }
 }
+Value::Value(ValueType type)
+    : type(type)
+    , intValue(0)
+{}
 
 void Value::Print() const
 {
@@ -55,6 +61,9 @@ void Value::Print() const
             break;
         case ValueType::FUNCTION:
             printf("func %s\n", functionValue ? functionValue->name.c_str() : "<nil>");
+            break;
+        case ValueType::ERROR:
+            printf("<error>\n");
             break;
     }
 }

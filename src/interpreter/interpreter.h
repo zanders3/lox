@@ -6,7 +6,7 @@
 
 class Environment;
 
-struct Interpreter : public StmtVisitor<void>, ExprVisitor<Value>
+struct Interpreter : public StmtVisitor<bool>, ExprVisitor<Value>
 {
     Interpreter(const std::shared_ptr<Environment>& env);
 
@@ -16,18 +16,18 @@ struct Interpreter : public StmtVisitor<void>, ExprVisitor<Value>
     Value VisitLiteral(const ExprLiteral& lit) override;
     Value VisitLogical(const ExprLogical& expr) override;
     Value VisitUnary(const ExprUnary& expr) override;
-    void VisitExpression(const StmtExpression& expr) override;
     Value VisitVariable(const ExprVariable& expr) override;
     Value VisitAssign(const ExprAssign& expr) override;
 
-    void VisitVar(const StmtVar& stmt) override;
-    void ExecuteBlock(const StmtPtrList& stmts);
-    void VisitBlock(const StmtBlock& stmt) override;
-    void VisitFunction(const StmtFunction& stmt) override;
-    void VisitIf(const StmtIf& stmt) override;
-    void VisitPrint(const StmtPrint& expr) override;
-    void VisitReturn(const StmtReturn& stmt) override;
-    void VisitWhile(const StmtWhile& stmt) override;
+    bool VisitExpression(const StmtExpression& expr) override;
+    bool VisitVar(const StmtVar& stmt) override;
+    bool ExecuteBlock(const StmtPtrList& stmts);
+    bool VisitBlock(const StmtBlock& stmt) override;
+    bool VisitFunction(const StmtFunction& stmt) override;
+    bool VisitIf(const StmtIf& stmt) override;
+    bool VisitPrint(const StmtPrint& expr) override;
+    bool VisitReturn(const StmtReturn& stmt) override;
+    bool VisitWhile(const StmtWhile& stmt) override;
 
     Value returnValue;
     std::shared_ptr<Environment> environment;

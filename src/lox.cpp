@@ -3,12 +3,8 @@
 #include "parser.h"
 #include "interpreter/interpreter.h"
 
-bool g_hadError = false;
-
 void lox_run(const std::shared_ptr<Environment>& env, const char* source, int sourceLen)
 {
-    g_hadError = false;
-
     std::vector<Token> tokens;
     scanner_scan(source, sourceLen, tokens);
 
@@ -22,7 +18,6 @@ void lox_run(const std::shared_ptr<Environment>& env, const char* source, int so
 
 void lox_error(int line, const char* message)
 {
-    g_hadError = true;
     printf("[line %d] Error %s\n", line, message);
 }
 

@@ -4,9 +4,6 @@
 #include "lox.h"
 #include <cassert>
 
-typedef std::unordered_map<std::string,Value>::iterator MapIterator;
-typedef std::unordered_map<std::string,Value>::const_iterator ConstMapIterator;
-
 Environment::Environment(const std::shared_ptr<Environment>& parent)
 	: m_parent(parent)
 {
@@ -14,7 +11,7 @@ Environment::Environment(const std::shared_ptr<Environment>& parent)
 
 Value Environment::Get(const Token* token) const 
 {
-	ConstMapIterator val = m_vars.find(token->stringLiteral);
+	auto val = m_vars.find(token->stringLiteral);
 	if (val != m_vars.end())
 		return val->second;
 
@@ -22,27 +19,36 @@ Value Environment::Get(const Token* token) const
 		return m_parent->Get(token);
 	
 	lox_error(*token, "Undefined variable");
-    return Value();
+    return Value::Error;
 }
 
-void Environment::Assign(const Token* token, const Value& value) 
+bool Environment::Assign(const Token* token, const Value& value) 
 {
-	MapIterator val = m_vars.find(token->stringLiteral);
+	auto val = m_vars.find(token->stringLiteral);
 	if (val != m_vars.end())
 	{
 		val->second = value;	
-		return;
+		return true;
 	}
 
 	if (m_parent)
-		m_parent->Assign(token, value);
-	else
-		lox_error(*token, "Undefined variable");
+		return m_parent->Assign(token, value);
+
+	lox_error(*token, "Undefined variable");
+	return false;
 }
 
-void Environment::Define(const Token* token, const Value& value)
+bool Environment::Define(const Token* token, const Value& value)
 {
-	m_vars.emplace(token->stringLiteral, value);
+	auto val = m_vars.find(token->stringLiteral);
+	if (val == m_vars.end())
+	{
+		m_vars.emplace(token->stringLiteral, value);
+		return true;
+	}
+
+	lox_error(*token, "Variable already defined");
+	return false;
 }
 
 void Environment::DefineFunction(const std::string& name, LoxFunction function, int arity, const StmtFunction* stmt, const std::shared_ptr<Environment>& closure)

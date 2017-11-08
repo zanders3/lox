@@ -62,6 +62,7 @@ Value Interpreter::VisitBinary(const ExprBinary& expr)
                     case ValueType::NUMBER: rightStr = std::to_string(right.intValue).c_str(); break;
                     case ValueType::STRING: rightStr = right.stringValue.c_str(); break;
                     case ValueType::FUNCTION: rightStr = (std::string("func ") + right.stringValue).c_str(); break;
+                    case ValueType::ERROR: return Value::Error;
                 }
 
                 return Value(left.stringValue + rightStr);
@@ -95,7 +96,7 @@ Value Interpreter::VisitBinary(const ExprBinary& expr)
             lox_error(*expr.op, "Unknown operand");
             break;
     }
-    return Value();
+    return Value::Error;
 }
 
 Value Interpreter::VisitCall(const ExprCall& expr) 
@@ -104,7 +105,7 @@ Value Interpreter::VisitCall(const ExprCall& expr)
     if (callee.type != ValueType::FUNCTION || !callee.functionValue)
     {
         lox_error(*expr.paren, "Callee is not a function");
-        return Value();
+        return Value::Error;
     }
 
     return callee.functionValue->Call(*this, expr);
@@ -130,6 +131,8 @@ static bool IsTruthy(const Value& val)
 Value Interpreter::VisitLogical(const ExprLogical& expr) 
 {
     Value left = VisitExpr(*expr.left);
+    if (left.IsError())
+        return Value::Error;
     if (expr.op->type == TokenType::OR)
     {
         if (IsTruthy(left)) return left;
@@ -158,11 +161,6 @@ Value Interpreter::VisitUnary(const ExprUnary& expr)
     return Value();
 }
 
-void Interpreter::VisitExpression(const StmtExpression& expr) 
-{
-    VisitExpr(*expr.expr);
-}
-
 Value Interpreter::VisitVariable(const ExprVariable& expr) 
 {
     return environment->Get(expr.name);
@@ -175,59 +173,82 @@ Value Interpreter::VisitAssign(const ExprAssign& expr)
     return value;
 }
 
-void Interpreter::VisitVar(const StmtVar& stmt)
+bool Interpreter::VisitExpression(const StmtExpression& expr) 
+{
+    return VisitExpr(*expr.expr).IsValid();
+}
+
+bool Interpreter::VisitVar(const StmtVar& stmt)
 {
     Value value;
     if (stmt.init)
         value = VisitExpr(*stmt.init);
-    environment->Define(stmt.name, value);
+    if (value.IsError())
+        return false;
+    return environment->Define(stmt.name, value);
 }
 
-void Interpreter::ExecuteBlock(const StmtPtrList& stmts)
+bool Interpreter::ExecuteBlock(const StmtPtrList& stmts)
 {
     for (const StmtPtr& stmt : stmts)
     {
-        if (stmt)
-            VisitStmt(*stmt);
-        if (g_hadError || hadReturn)
-            return;
+        if (!stmt || !VisitStmt(*stmt))
+            return false;
+        if (hadReturn)
+            return true;
     }
+
+    return true;
 }
 
-void Interpreter::VisitBlock(const StmtBlock& stmt) 
+bool Interpreter::VisitBlock(const StmtBlock& stmt) 
 {
     std::shared_ptr<Environment> parent = environment;
     environment = std::make_shared<Environment>(parent);
-    ExecuteBlock(stmt.stmts);
+    bool result = ExecuteBlock(stmt.stmts);
     environment = parent;
+    return result;
 }
 
-void Interpreter::VisitFunction(const StmtFunction& stmt) 
+bool Interpreter::VisitFunction(const StmtFunction& stmt) 
 {
     environment->DefineFunction(stmt.name->stringLiteral, nullptr, stmt.params.size(), &stmt, environment);
+    return true;
 }
 
-void Interpreter::VisitIf(const StmtIf& stmt) 
+bool Interpreter::VisitIf(const StmtIf& stmt) 
 {
 	if (IsTruthy(VisitExpr(*stmt.condition)))
-		VisitStmt(*stmt.thenBranch);
+		return VisitStmt(*stmt.thenBranch);
 	else if (stmt.elseBranch)
-		VisitStmt(*stmt.elseBranch);
+		return VisitStmt(*stmt.elseBranch);
+    return true;
 }
 
-void Interpreter::VisitPrint(const StmtPrint& expr) 
+bool Interpreter::VisitPrint(const StmtPrint& expr) 
 {
-    VisitExpr(*expr.expr).Print();
+    Value value = VisitExpr(*expr.expr);
+    if (value.IsError())
+        return false;
+    value.Print();
+    return true;
 }
 
-void Interpreter::VisitReturn(const StmtReturn& stmt) 
+bool Interpreter::VisitReturn(const StmtReturn& stmt) 
 {
     returnValue = VisitExpr(*stmt.value);
+    if (returnValue.IsError())
+        return false;
     hadReturn = true;
+    return true;
 }
 
-void Interpreter::VisitWhile(const StmtWhile& stmt) 
+bool Interpreter::VisitWhile(const StmtWhile& stmt) 
 {
 	while (IsTruthy(VisitExpr(*stmt.condition)))
-		VisitStmt(*stmt.body);
+    {
+		if (!VisitStmt(*stmt.body))
+            return false;
+    }
+    return true;
 }
