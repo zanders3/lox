@@ -517,8 +517,13 @@ struct Parser
     }
 };
 
-void parser_parse(const std::vector<Token>& tokens, std::vector<StmtPtr>& stmts)
+bool parser_parse(const std::vector<Token>& tokens, std::vector<StmtPtr>& stmts)
 {
     Parser parser(tokens);
     parser.Parse(stmts);
+
+    for (const StmtPtr& stmt : stmts)
+        if (!stmt)
+            return false;
+    return true;
 }

@@ -9,30 +9,44 @@ Environment::Environment(const std::shared_ptr<Environment>& parent)
 {
 }
 
-Value Environment::Get(const Token* token) const 
+Value Environment::GetAt(const Token* token, int depth) const 
 {
-	auto val = m_vars.find(token->stringLiteral);
-	if (val != m_vars.end())
-		return val->second;
+	const Environment* env = this;
+	for (int i = 0; i<depth && env; ++i)
+		env = env->m_parent.get();
 
-	if (m_parent)
-		return m_parent->Get(token);
+	if (!env)
+	{
+		lox_error(*token, "Unable to resolve variable");
+		return Value::Error;
+	}
+
+	auto val = env->m_vars.find(token->stringLiteral);
+	if (val != env->m_vars.end())
+		return val->second;
 	
 	lox_error(*token, "Undefined variable");
     return Value::Error;
 }
 
-bool Environment::Assign(const Token* token, const Value& value) 
+bool Environment::AssignAt(const Token* token, const Value& value, int depth) 
 {
-	auto val = m_vars.find(token->stringLiteral);
-	if (val != m_vars.end())
+	Environment* env = this;
+	for (int i = 0; i<depth && env; ++i)
+		env = env->m_parent.get();
+
+	if (!env)
+	{
+		lox_error(*token, "Unable to resolve variable");
+		return false;
+	}
+
+	auto val = env->m_vars.find(token->stringLiteral);
+	if (val != env->m_vars.end())
 	{
 		val->second = value;	
 		return true;
 	}
-
-	if (m_parent)
-		return m_parent->Assign(token, value);
 
 	lox_error(*token, "Undefined variable");
 	return false;

@@ -5,4 +5,4 @@
 
 struct Token;
 
-void parser_parse(const std::vector<Token>& tokens, StmtPtrList& stmts);
+bool parser_parse(const std::vector<Token>& tokens, StmtPtrList& stmts);

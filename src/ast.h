@@ -11,10 +11,10 @@ enum class ExprType
 struct Expr
 {
     ExprType type;
-
     virtual ~Expr();
 };
 
+const int GlobalVariable = -1;
 typedef std::unique_ptr<Expr> ExprPtr;
 typedef std::vector<std::unique_ptr<Expr>> ExprPtrList;
 
@@ -23,11 +23,13 @@ struct ExprAssign : public Expr
     ExprAssign(const Token* name, ExprPtr&& value)
         : name(name)
         , value(std::move(value))
+        , depth(GlobalVariable)
     {
         type = ExprType::Assign;
     }
     const Token* name;
     ExprPtr value;
+    int depth;
 };
 
 struct ExprBinary : public Expr
@@ -140,41 +142,13 @@ struct ExprVariable : public Expr
 {
     ExprVariable(const Token* name)
         : name(name)
+        , depth(GlobalVariable)
     {
         type = ExprType::Variable;   
     }
 
     const Token* name;
-};
-
-template <typename Ret> struct ExprVisitor
-{
-    virtual ~ExprVisitor() {}
-
-    virtual Ret VisitAssign(const ExprAssign& expr) = 0;
-    virtual Ret VisitBinary(const ExprBinary& expr) = 0;
-    virtual Ret VisitCall(const ExprCall& expr) = 0;
-    virtual Ret VisitGrouping(const ExprGrouping& expr) = 0;
-    virtual Ret VisitLiteral(const ExprLiteral& expr) = 0;
-    virtual Ret VisitLogical(const ExprLogical& expr) = 0;
-    virtual Ret VisitUnary(const ExprUnary& expr) = 0;
-    virtual Ret VisitVariable(const ExprVariable& expr) = 0;
-
-    Ret VisitExpr(const Expr& expr)
-    {
-        switch (expr.type)
-        {
-            case ExprType::Assign: return VisitAssign(static_cast<const ExprAssign&>(expr));
-            case ExprType::Binary: return VisitBinary(static_cast<const ExprBinary&>(expr));
-            case ExprType::Call: return VisitCall(static_cast<const ExprCall&>(expr));
-            case ExprType::Grouping: return VisitGrouping(static_cast<const ExprGrouping&>(expr));
-            case ExprType::Literal: return VisitLiteral(static_cast<const ExprLiteral&>(expr));
-            case ExprType::Logical: return VisitLogical(static_cast<const ExprLogical&>(expr));
-            case ExprType::Unary: return VisitUnary(static_cast<const ExprUnary&>(expr));
-            case ExprType::Variable: return VisitVariable(static_cast<const ExprVariable&>(expr));
-            default: return Ret();
-        }
-    }
+    int depth;
 };
 
 enum class StmtType
@@ -185,7 +159,6 @@ enum class StmtType
 struct Stmt
 {
     StmtType type;
-
     virtual ~Stmt();
 };
 
@@ -291,34 +264,4 @@ struct StmtWhile : public Stmt
 
     ExprPtr condition;
     StmtPtr body;
-};
-
-template <typename Ret> struct StmtVisitor
-{
-    virtual ~StmtVisitor() {}
-
-    virtual Ret VisitBlock(const StmtBlock& stmt) = 0;
-    virtual Ret VisitExpression(const StmtExpression& stmt) = 0;
-    virtual Ret VisitFunction(const StmtFunction& stmt) = 0;
-    virtual Ret VisitIf(const StmtIf& stmt) = 0;
-    virtual Ret VisitPrint(const StmtPrint& stmt) = 0;
-    virtual Ret VisitReturn(const StmtReturn& stmt) = 0;
-    virtual Ret VisitVar(const StmtVar& stmt) = 0;
-    virtual Ret VisitWhile(const StmtWhile& stmt) = 0;
-
-    Ret VisitStmt(const Stmt& stmt)
-    {
-        switch (stmt.type)
-        {
-            case StmtType::Block: return VisitBlock(static_cast<const StmtBlock&>(stmt));
-            case StmtType::Expression: return VisitExpression(static_cast<const StmtExpression&>(stmt));
-            case StmtType::Function: return VisitFunction(static_cast<const StmtFunction&>(stmt));
-            case StmtType::If: return VisitIf(static_cast<const StmtIf&>(stmt));
-            case StmtType::Print: return VisitPrint(static_cast<const StmtPrint&>(stmt));
-            case StmtType::Return: return VisitReturn(static_cast<const StmtReturn&>(stmt));
-            case StmtType::Var: return VisitVar(static_cast<const StmtVar&>(stmt));
-            case StmtType::While: return VisitWhile(static_cast<const StmtWhile&>(stmt));
-            default: return Ret();
-        }
-    }
 };

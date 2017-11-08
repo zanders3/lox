@@ -11,8 +11,8 @@ class Environment
 {
 public:
     Environment(const std::shared_ptr<Environment>& parent = std::shared_ptr<Environment>());
-    Value Get(const Token* name) const;
-    bool Assign(const Token* name, const Value& value);
+    Value GetAt(const Token* name, int depth) const;
+    bool AssignAt(const Token* name, const Value& value, int depth);
     bool Define(const Token* name, const Value& value);
     void DefineFunction(const std::string& name, LoxFunction function, int arity, const StmtFunction* stmt = nullptr, const std::shared_ptr<Environment>& closure = std::shared_ptr<Environment>());
 

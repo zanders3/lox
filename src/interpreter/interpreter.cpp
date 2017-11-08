@@ -4,6 +4,7 @@
 
 Interpreter::Interpreter(const std::shared_ptr<Environment>& env)
     : environment(env)
+    , globals(env)
 {}
 
 static bool IsEqual(const Value& left, const Value& right)
@@ -163,13 +164,19 @@ Value Interpreter::VisitUnary(const ExprUnary& expr)
 
 Value Interpreter::VisitVariable(const ExprVariable& expr) 
 {
-    return environment->Get(expr.name);
+    if (expr.depth == GlobalVariable)
+        return globals->GetAt(expr.name, 0);
+    else
+        return environment->GetAt(expr.name, expr.depth);
 }
 
 Value Interpreter::VisitAssign(const ExprAssign& expr)
 {
     Value value = VisitExpr(*expr.value);
-    environment->Assign(expr.name, value);
+    if (expr.depth == GlobalVariable)
+        globals->AssignAt(expr.name, value, 0);
+    else
+        environment->AssignAt(expr.name, value, expr.depth);
     return value;
 }
 

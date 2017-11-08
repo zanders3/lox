@@ -1,12 +1,12 @@
 #pragma once
 
-#include "ast.h"
+#include "ast_visitors.h"
 #include "value.h"
 #include <memory>
 
 class Environment;
 
-struct Interpreter : public StmtVisitor<bool>, ExprVisitor<Value>
+struct Interpreter : public ConstStmtVisitor<bool>, ConstExprVisitor<Value>
 {
     Interpreter(const std::shared_ptr<Environment>& env);
 
@@ -31,5 +31,6 @@ struct Interpreter : public StmtVisitor<bool>, ExprVisitor<Value>
 
     Value returnValue;
     std::shared_ptr<Environment> environment;
+    std::shared_ptr<Environment> globals;
     bool hadReturn = false;
 };

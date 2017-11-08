@@ -1,4 +1,4 @@
 #pragma once
 #include "ast.h"
 
-void resolver_resolve(const StmtPtrList& stmts);
+bool resolver_resolve(StmtPtrList& stmts);

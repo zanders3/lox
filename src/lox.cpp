@@ -10,9 +10,11 @@ void lox_run(const std::shared_ptr<Environment>& env, const char* source, int so
     scanner_scan(source, sourceLen, tokens);
 
     StmtPtrList stmts;
-    parser_parse(tokens, stmts);
+    if (!parser_parse(tokens, stmts))
+        return;
 
-    resolver_resolve(stmts);
+    if (!resolver_resolve(stmts))
+        return;
 
     Interpreter interpreter(env);
     interpreter.ExecuteBlock(stmts);
